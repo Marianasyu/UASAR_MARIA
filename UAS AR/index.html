@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>AR Tata Surya - Interaktif</title>
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+  <script src="https://unpkg.com/aframe-gesture-detector@3.3.0/dist/aframe-gesture-detector.min.js"></script>
+</head>
+
+<body style="margin: 0; overflow: hidden;">
+  <a-scene
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false"
+    cursor="rayOrigin: mouse"
+    raycaster="objects: .clickable-text, .planet, .sun"
+  >
+    <!-- Kamera -->
+    <a-entity camera></a-entity>
+
+    <!-- Aset -->
+    <a-assets>
+      <audio id="bg-music" src="deep-space-167140.mp3"></audio>
+      <audio id="click-sound" src="mouse-click-290204.mp3"></audio>
+    </a-assets>
+
+    <!-- Efek Suara -->
+    <a-entity id="sound-player" sound="src: #bg-music; loop: true; volume: 0.4"></a-entity>
+    <a-entity id="click-sfx" sound="src: #click-sound; volume: 0.7"></a-entity>
+
+    <!-- Marker Hiro -->
+    <a-marker preset="hiro" id="marker-hiro">
+      <a-entity id="solar-system" scale="1.5 1.5 1.5" gesture-handler>
+
+        <!-- Matahari -->
+        <a-sphere radius="0.15" position="0 0.1 0" color="yellow" emissive="orange" class="sun"
+          id="sun" planet-name="Matahari" planet-info="Matahari adalah pusat tata surya. Tidak mengorbit benda lain."
+          animation="property: rotation; to: 0 360 0; loop: true; dur: 10000"></a-sphere>
+        <a-text id="matahari-text" value="Matahari" position="0 0.32 0" align="center" color="white" width="3"
+          class="clickable-text"></a-text>
+        <a-text id="info-sun" value="" position="0 0.42 0" visible="false" color="orange" align="center" width="2.5"></a-text>
+
+        <!-- Orbit Bumi + animasi -->
+        <a-ring position="0 0.11 0" rotation="-90 0 0" radius-inner="0.45" radius-outer="0.46"
+          material="color: yellow; opacity: 0.4"></a-ring>
+
+        <a-entity id="earth-orbit" animation="property: rotation; to: 0 360 0; loop: true; dur: 10000">
+          <a-entity position="0.455 0.1 0">
+            <!-- Planet Bumi -->
+            <a-sphere radius="0.04" color="deepskyblue" class="planet"
+              id="bumi" planet-name="Bumi" planet-info="Bumi mengelilingi Matahari selama 365 hari atau 1 tahun."></a-sphere>
+
+            <!-- Teks dan Info Bumi -->
+            <a-entity position="0.12 0.12 0">
+              <a-text id="bumi-text" value="Bumi" class="clickable-text"
+                align="center" color="white" width="2"></a-text>
+              <a-text id="info-bumi" value="" position="0 0.1 0" visible="false"
+                color="cyan" align="center" width="2.5"></a-text>
+            </a-entity>
+          </a-entity>
+        </a-entity>
+
+      </a-entity>
+    </a-marker>
+
+    <!-- Script -->
+    <script>
+      // Planet / Matahari dapat diklik
+      AFRAME.registerComponent('planet-listener', {
+        init: function () {
+          const el = this.el;
+          el.addEventListener('click', function () {
+            const info = el.getAttribute('planet-info');
+            const id = el.getAttribute('id');
+            const bubble = document.querySelector(`#info-${id}`);
+            const clickSFX = document.querySelector('#click-sfx');
+
+            if (clickSFX) clickSFX.components.sound.playSound();
+
+            if (bubble) {
+              const visible = bubble.getAttribute('visible');
+              if (!visible) {
+                bubble.setAttribute('value', info);
+                bubble.setAttribute('visible', true);
+              } else {
+                bubble.setAttribute('visible', false);
+              }
+            }
+
+            // Efek Zoom objek
+            el.setAttribute('animation__zoom', {
+              property: 'scale', to: '1.5 1.5 1.5', dur: 300, easing: 'easeOutQuad'
+            });
+            setTimeout(() => {
+              el.setAttribute('animation__zoomback', {
+                property: 'scale', to: '1 1 1', dur: 300, easing: 'easeInQuad'
+              });
+            }, 500);
+          });
+        }
+      });
+
+      // Teks klikable: Matahari dan Bumi
+      function setupInfoClick(textId, infoId, infoText, others = []) {
+        const textEl = document.querySelector(textId);
+        const infoEl = document.querySelector(infoId);
+        const clickSFX = document.querySelector('#click-sfx');
+
+        if (textEl && infoEl) {
+          textEl.addEventListener('click', () => {
+            if (clickSFX) clickSFX.components.sound.playSound();
+
+            others.forEach(o => {
+              const el = document.querySelector(o);
+              if (el) el.setAttribute('visible', false);
+            });
+
+            const visible = infoEl.getAttribute('visible');
+            if (!visible) {
+              infoEl.setAttribute('value', infoText);
+              infoEl.setAttribute('visible', true);
+            } else {
+              infoEl.setAttribute('visible', false);
+            }
+
+            textEl.setAttribute('animation__zoom', {
+              property: 'scale', to: '1.3 1.3 1.3', dur: 200, easing: 'easeOutQuad'
+            });
+            setTimeout(() => {
+              textEl.setAttribute('animation__zoomback', {
+                property: 'scale', to: '1 1 1', dur: 200, easing: 'easeInQuad'
+              });
+            }, 300);
+          });
+        }
+      }
+
+      window.addEventListener('load', () => {
+        document.querySelectorAll('.planet, .sun').forEach(el => {
+          el.setAttribute('planet-listener', '');
+        });
+
+        setupInfoClick('#matahari-text', '#info-sun', 'Matahari adalah pusat tata surya. Tidak mengorbit benda lain.', ['#info-bumi']);
+        setupInfoClick('#bumi-text', '#info-bumi', 'Bumi mengelilingi Matahari selama 365 hari atau 1 tahun.', ['#info-sun']);
+
+        const soundPlayer = document.querySelector('#sound-player');
+        const marker = document.querySelector('#marker-hiro');
+
+        marker.addEventListener('markerFound', () => {
+          soundPlayer.components.sound.playSound();
+        });
+
+        marker.addEventListener('markerLost', () => {
+          soundPlayer.components.sound.stopSound();
+        });
+      });
+
+      // Gesture pinch & rotate
+      AFRAME.registerComponent('gesture-handler', {
+        schema: {
+          enabled: { default: true },
+          rotationFactor: { default: 5 },
+          minScale: { default: 0.5 },
+          maxScale: { default: 2.5 }
+        },
+        init: function () {
+          this.handleScale = this.handleScale.bind(this);
+          this.handleRotation = this.handleRotation.bind(this);
+          this.scaleFactor = 1.5;
+          this.rotationY = 0;
+          this.el.sceneEl.addEventListener('gesturechange', e => {
+            if (!this.data.enabled) return;
+            if (e.detail.scale !== 1) this.handleScale(e);
+            if (e.detail.rotation !== 0) this.handleRotation(e);
+          });
+        },
+        handleScale: function (e) {
+          this.scaleFactor *= e.detail.scale;
+          this.scaleFactor = Math.min(this.data.maxScale, Math.max(this.data.minScale, this.scaleFactor));
+          this.el.setAttribute('scale', `${this.scaleFactor} ${this.scaleFactor} ${this.scaleFactor}`);
+        },
+        handleRotation: function (e) {
+          this.rotationY += e.detail.rotation * this.data.rotationFactor;
+          this.el.setAttribute('rotation', `0 ${this.rotationY} 0`);
+        }
+      });
+    </script>
+  </a-scene>
+</body>
+</html>
